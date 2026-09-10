@@ -1,177 +1,244 @@
-import { logger } from '../utils/logger.js';
+import { Client, GatewayIntentBits, ActivityType, EmbedBuilder, SlashCommandBuilder, PermissionFlagsBits } from "discord.js";
 
-export const botConfig = {
-  // ==========================================
-  // BOT PRESENCE & STATUS
-  // ==========================================
-  presence: {
-    status: "online", // Options: "online" | "idle" | "dnd" | "invisible"
+// Initialize Discord Client
+const client = new Client({
+  intents: [
+    GatewayIntentBits.Guilds,
+    GatewayIntentBits.GuildMessages,
+    GatewayIntentBits.MessageContent
+  ]
+});
+
+// ==========================================
+// BOT ONLINE EVENT & GREEN STATUS BADGE
+// ==========================================
+client.once("ready", async () => {
+  console.log(`🌴 ${client.user.tag} is now online and active for Miami City Roleplay!`);
+
+  // 1. Sets the Green Online Dot status indicator
+  client.user.setPresence({
+    status: "online", // Shows the green dot badge
     activities: [
       {
-        name: "Miami City Roleplay",
-        state: "🌴 Protecting & Serving Miami", // Visible custom status text
-        type: 4, // 4 = Custom status in Discord API
+        name: "Miami City Roleplay | Code: MIAMI",
+        type: ActivityType.Playing
       }
     ]
-  },
+  });
 
-  // ==========================================
-  // COMMAND SETTINGS & EXTENDED ER:LC COMMANDS
-  // ==========================================
-  commands: {
-    owners: process.env.OWNER_IDS ? process.env.OWNER_IDS.split(",").map((id) => id.trim()).filter(Boolean) : [],
-    defaultCooldown: 3,
-    deleteCommands: false,
-    testGuildId: process.env.TEST_GUILD_ID,
-    maintenanceMode: process.env.MAINTENANCE_MODE === "true",
-    prefix: process.env.PREFIX || "!",
+  // 2. Sends an online message in your designated channel
+  const STARTUP_CHANNEL_ID = "YOUR_STARTUP_CHANNEL_ID_HERE";
+  
+  try {
+    const channel = await client.channels.fetch(STARTUP_CHANNEL_ID);
+    if (channel && channel.isTextBased()) {
+      const onlineEmbed = new EmbedBuilder()
+        .setTitle("🌴 MIAMI CITY ROLEPLAY — BOT ONLINE")
+        .setDescription("The main system bot is currently **ONLINE** and operational. All slash commands, ticket systems, and session controls are active.")
+        .setColor("#FF1493") // Miami Pink
+        .addFields(
+          { name: "⚡ Status", value: "🟢 Operational", inline: true },
+          { name: "🔑 Server Code", value: "`MIAMI`", inline: true }
+        )
+        .setTimestamp()
+        .setFooter({ text: "Miami City Roleplay • Systems Active" });
 
-    // Extended Custom Utilities & ER:LC Response Commands
-    customCommands: [
-      {
-        name: "servercode",
-        description: "Get the main ERLC server join code and connection guide",
-        response: "🌴 **MIAMI CITY ROLEPLAY — ERLC JOIN CODE** 🌴\n\n**Server Code:** `MIAMI`\n**Server Status:** 🟢 Online & Public\n**Host:** Management Team\n\n📌 **How to Join:**\n1. Launch *Emergency Response: Liberty County* on Roblox.\n2. Go to **Private Servers** > **Join Private Server**.\n3. Type code `MIAMI` and connect!"
-      },
-      {
-        name: "rules",
-        description: "Detailed overview of server rules and roleplay directives",
-        response: "📜 **MIAMI CITY ROLEPLAY — CORE RULES** 📜\n\n1. **FailRP / FRP:** Unrealistic actions, leaving mid-RP, or failing to value your life (FearRP) are strictly punishable.\n2. **RDM / VDM:** Random & Vehicle Deathmatch will lead to an immediate kick/ban.\n3. **New Life Rule (NLR):** Upon dying, you forget the prior scenario and cannot return to that area for 15 minutes.\n4. **Priority Cooldowns:** Do not initiate high-tier crimes (bank robberies, server pursuits) during active priority cooldowns.\n\n👉 *Read the complete rulebook in <#RULES_CHANNEL_ID>.*"
-      },
-      {
-        name: "cad",
-        description: "Link and registration steps for the CAD/MDT system",
-        response: "💻 **MIAMI CITY ROLEPLAY — CAD / MDT SYSTEM** 💻\n\nAll LEO, EMS, Fire, and Civilian members must register on our CAD system to log characters, warrants, and vehicle plates.\n\n🔗 **CAD Access:** https://cad.miamicityrp.com\n🆔 **Community Code:** `MIAMIRP`\n\n*Need CAD assistance? Open a **General Support** ticket!*"
-      },
-      {
-        name: "session",
-        description: "Check current roleplay session status and host info",
-        response: "🚨 **MIAMI CITY ROLEPLAY — SESSION STATUS** 🚨\n\n**Status:** 🟢 ACTIVE SESSION IN PROGRESS\n**Server Code:** `MIAMI`\n**Active Units:** LSPD, Sheriff, and Miami Fire Rescue currently on patrol.\n\n⚠️ *Make sure you are properly registered in the CAD before spawning in on duty.*"
-      },
-      {
-        name: "departments",
-        description: "List of official Miami City RP departments",
-        response: "🚓 **MIAMI CITY ROLEPLAY — DEPARTMENTS** 🚓\n\n• **Miami Police Department (MPD):** Primary urban law enforcement.\n• **Miami-Dade Sheriff's Office (MDSO):** Highway patrol and county security.\n• **Miami Fire Rescue (MFR):** Emergency medical services and fire suppression.\n• **Civilian Operations (CIV):** Registered civilian roleplay and official business owners.\n\n📝 *Apply for a department using our application portal!*"
-      },
-      {
-        name: "civilian",
-        description: "Civilian guidelines and priority rules",
-        response: "🚘 **CIVILIAN ROLEPLAY DIRECTIVE** 🚘\n\n• Ensure all civilian vehicles are registered in the CAD before driving.\n• High-tier crimes require a minimum of **3 LEO on duty**.\n• Keep criminal roleplay realistic and engaging for all parties involved."
-      },
-      {
-        name: "staff",
-        description: "In-game and Discord staff assistance guide",
-        response: "🛡️ **STAFF ASSISTANCE DIRECTIVE** 🛡️\n\n• **In-Game Help:** Execute `!modcall` inside the ERLC server for on-scene moderation.\n• **Discord Help:** Open a support ticket in our portal.\n• Do not direct message staff members for ticket/report responses."
-      },
-      {
-        name: "socials",
-        description: "Official links for Miami City Roleplay",
-        response: "🌐 **OFFICIAL MIAMI CITY LINKS** 🌐\n\n• **Roblox Group:** https://www.roblox.com/groups/miamicityrp\n• **TikTok:** https://tiktok.com/@miamicityroleplay\n• **YouTube:** https://youtube.com/@miamicityroleplay\n• **CAD System:** https://cad.miamicityrp.com"
-      }
-    ]
-  },
-
-  // ==========================================
-  // APPLICATIONS & RECRUITMENT
-  // ==========================================
-  applications: {
-    defaultQuestions: [
-      { question: "What is your Roblox Username & Discord User ID?", required: true },
-      { question: "How old are you?", required: true },
-      { question: "Which department are you applying for? (Staff / MPD / MDSO / Fire Rescue / Civilian)", required: true },
-      { question: "How many hours per week can you dedicate to Miami City RP?", required: true },
-      { question: "Why do you want to join our team, and what prior ER:LC experience do you have?", required: true }
-    ],
-    statusColors: {
-      pending: "#FFA500",
-      approved: "#00FF00",
-      denied: "#FF0000",
-    },
-    applicationCooldown: 24, // Hours before re-applying
-    deleteDeniedAfter: 7,    // Auto-clean denied apps (Days)
-    deleteApprovedAfter: 30, // Auto-clean approved apps (Days)
-    managerRoles: [],
-  },
-
-  // ==========================================
-  // SUPPORT TICKETS & CATEGORIES
-  // ==========================================
-  support: {
-    categories: [
-      {
-        id: "community_support",
-        label: "Community Support",
-        emoji: "🤝",
-        description: "General member assistance, server inquiries, role requests, or general navigation.",
-        color: "#3498DB"
-      },
-      {
-        id: "general_support",
-        label: "General Support",
-        emoji: "🚔",
-        description: "In-game ER:LC issues, civilian questions, server code help, or basic RP queries.",
-        color: "#00FF00"
-      },
-      {
-        id: "management_support",
-        label: "Management Support",
-        emoji: "💼",
-        description: "Department leadership inquiries, ban appeals, partnerships, or server feedback.",
-        color: "#E91E63"
-      },
-      {
-        id: "staff_reports",
-        label: "Staff Reports",
-        emoji: "🛡️",
-        description: "Report a staff member for abuse of power or policy violations. Video evidence required.",
-        color: "#FF0000"
-      }
-    ]
-  },
-
-  // ==========================================
-  // EMBED BRANDING & MIAMI NEON THEME
-  // ==========================================
-  embeds: {
-    colors: {
-      // Miami Vice / Cyberpunk Brand Palette
-      primary: "#FF1493",   // Deep Pink
-      secondary: "#00F0FF", // Neon Cyan
-
-      // Standard Status Colors
-      success: "#57F287",
-      error: "#ED4245",
-      warning: "#FEE75C",
-      info: "#3498DB",
-
-      // Utility Colors
-      light: "#FFFFFF",
-      dark: "#1A1A24",
-      gray: "#99AAB5",
-
-      // Ticket & System Colors
-      ticket: {
-        open: "#57F287",
-        claimed: "#FAA61A",
-        closed: "#ED4245",
-        pending: "#99AAB5",
-      },
-      economy: "#F1C40F",
-      birthday: "#E91E63",
-      moderation: "#FF1493",
-
-      priority: {
-        none: "#95A5A6",
-        low: "#3498DB",
-        medium: "#2ECC71",
-        high: "#F1C40F",
-        urgent: "#E74C3C",
-      },
-    },
-    footer: {
-      text: "Miami City Roleplay • Official Bot",
-      icon: null,
-    },
-    thumbnail: null
+      await channel.send({ embeds: [onlineEmbed] });
+    }
+  } catch (error) {
+    console.error("Could not send online status message:", error);
   }
-};
+});
+
+// ==========================================
+// SLASH COMMAND DEFINITIONS
+// ==========================================
+export const slashCommands = [
+
+  // ACTIVITY CHECKS
+  new SlashCommandBuilder()
+    .setName("activitycheck")
+    .setDescription("Manage staff activity checks for Miami City Roleplay")
+    .setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages)
+    .addSubcommand(sub => 
+      sub.setName("start").setDescription("Start a staff activity check"))
+    .addSubcommand(sub => 
+      sub.setName("cancel").setDescription("Cancel the current staff activity check"))
+    .addSubcommand(sub => 
+      sub.setName("status").setDescription("View the current activity check status")),
+
+  // MODERATION & PUNISHMENTS
+  new SlashCommandBuilder()
+    .setName("ban")
+    .setDescription("Ban a user from Miami City RP")
+    .setDefaultMemberPermissions(PermissionFlagsBits.BanMembers)
+    .addUserOption(opt => opt.setName("user").setDescription("The user to ban").setRequired(true))
+    .addStringOption(opt => opt.setName("reason").setDescription("Reason for the ban").setRequired(false)),
+
+  new SlashCommandBuilder()
+    .setName("tempban")
+    .setDescription("Temporarily ban a user")
+    .setDefaultMemberPermissions(PermissionFlagsBits.BanMembers)
+    .addUserOption(opt => opt.setName("user").setDescription("The user to ban").setRequired(true))
+    .addStringOption(opt => opt.setName("duration").setDescription("Ban length (e.g. 1d, 7d)").setRequired(true))
+    .addStringOption(opt => opt.setName("reason").setDescription("Reason for the temporary ban").setRequired(false)),
+
+  new SlashCommandBuilder()
+    .setName("unban")
+    .setDescription("Unban a user by ID")
+    .setDefaultMemberPermissions(PermissionFlagsBits.BanMembers)
+    .addStringOption(opt => opt.setName("user_id").setDescription("Discord User ID").setRequired(true)),
+
+  new SlashCommandBuilder()
+    .setName("mute")
+    .setDescription("Mute a user using Discord timeout")
+    .setDefaultMemberPermissions(PermissionFlagsBits.ModerateMembers)
+    .addUserOption(opt => opt.setName("user").setDescription("The user to mute").setRequired(true))
+    .addStringOption(opt => opt.setName("duration").setDescription("Duration (e.g. 10m, 1h)").setRequired(true))
+    .addStringOption(opt => opt.setName("reason").setDescription("Reason for timeout").setRequired(false)),
+
+  new SlashCommandBuilder()
+    .setName("warn")
+    .setDescription("Warn a user")
+    .setDefaultMemberPermissions(PermissionFlagsBits.ModerateMembers)
+    .addUserOption(opt => opt.setName("user").setDescription("The user to warn").setRequired(true))
+    .addStringOption(opt => opt.setName("reason").setDescription("Reason for warning").setRequired(true)),
+
+  new SlashCommandBuilder()
+    .setName("blacklist")
+    .setDescription("Blacklist a user ID from Miami City RP")
+    .setDefaultMemberPermissions(PermissionFlagsBits.Administrator)
+    .addStringOption(opt => opt.setName("user_id").setDescription("User ID to blacklist").setRequired(true))
+    .addStringOption(opt => opt.setName("reason").setDescription("Blacklist reason").setRequired(true)),
+
+  new SlashCommandBuilder()
+    .setName("unblacklist")
+    .setDescription("Remove a user ID from the blacklist")
+    .setDefaultMemberPermissions(PermissionFlagsBits.Administrator)
+    .addStringOption(opt => opt.setName("user_id").setDescription("User ID to unblacklist").setRequired(true)),
+
+  // STAFF INFRACTIONS & PROMOTIONS
+  new SlashCommandBuilder()
+    .setName("infraction")
+    .setDescription("Manage staff infractions")
+    .setDefaultMemberPermissions(PermissionFlagsBits.ManageRoles)
+    .addSubcommand(sub =>
+      sub.setName("issue").setDescription("Issue a staff infraction")
+        .addUserOption(opt => opt.setName("user").setDescription("Staff member").setRequired(true))
+        .addStringOption(opt => opt.setName("reason").setDescription("Reason for strike").setRequired(true)))
+    .addSubcommand(sub =>
+      sub.setName("edit").setDescription("Edit a staff infraction")
+        .addStringOption(opt => opt.setName("case_id").setDescription("Infraction Case ID").setRequired(true)))
+    .addSubcommand(sub =>
+      sub.setName("logs").setDescription("View staff infraction logs")
+        .addUserOption(opt => opt.setName("user").setDescription("Staff member").setRequired(true))),
+
+  new SlashCommandBuilder()
+    .setName("promotion")
+    .setDescription("Manage staff and department promotions")
+    .setDefaultMemberPermissions(PermissionFlagsBits.ManageRoles)
+    .addSubcommand(sub =>
+      sub.setName("issue").setDescription("Promote a staff member")
+        .addUserOption(opt => opt.setName("user").setDescription("Staff member").setRequired(true))
+        .addRoleOption(opt => opt.setName("new_role").setDescription("New position/role").setRequired(true)))
+    .addSubcommand(sub =>
+      sub.setName("logs").setDescription("View staff promotion logs"))
+    .addSubcommand(sub =>
+      sub.setName("cooldown_check").setDescription("Check a staff member promotion cooldown")
+        .addUserOption(opt => opt.setName("user").setDescription("Staff member").setRequired(true))),
+
+  new SlashCommandBuilder()
+    .setName("retirement_log")
+    .setDescription("Log a staff retirement or resignation")
+    .setDefaultMemberPermissions(PermissionFlagsBits.ManageRoles)
+    .addUserOption(opt => opt.setName("user").setDescription("Staff member retiring").setRequired(true))
+    .addStringOption(opt => opt.setName("reason").setDescription("Reason for leaving").setRequired(false)),
+
+  // STAFF POINTS
+  new SlashCommandBuilder()
+    .setName("points")
+    .setDescription("Manage staff moderation points")
+    .setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages)
+    .addSubcommand(sub =>
+      sub.setName("add").setDescription("Add moderation points")
+        .addUserOption(opt => opt.setName("user").setDescription("Staff member").setRequired(true))
+        .addIntegerOption(opt => opt.setName("amount").setDescription("Points amount").setRequired(true)))
+    .addSubcommand(sub =>
+      sub.setName("remove").setDescription("Remove moderation points")
+        .addUserOption(opt => opt.setName("user").setDescription("Staff member").setRequired(true))
+        .addIntegerOption(opt => opt.setName("amount").setDescription("Points amount").setRequired(true)))
+    .addSubcommand(sub =>
+      sub.setName("check").setDescription("Check moderation points")
+        .addUserOption(opt => opt.setName("user").setDescription("Staff member").setRequired(false)))
+    .addSubcommand(sub =>
+      sub.setName("reset").setDescription("Reset moderation points")),
+
+  // SESSION CONTROLS
+  new SlashCommandBuilder()
+    .setName("session")
+    .setDescription("Miami City RP session controls")
+    .setDefaultMemberPermissions(PermissionFlagsBits.ManageEvents)
+    .addSubcommand(sub => sub.setName("startup").setDescription("Send a session startup message"))
+    .addSubcommand(sub => sub.setName("vote").setDescription("Start a session vote"))
+    .addSubcommand(sub => sub.setName("boost").setDescription("Send a session boost message"))
+    .addSubcommand(sub => sub.setName("full").setDescription("Send a session full message"))
+    .addSubcommand(sub => sub.setName("shutdown").setDescription("Send a session shutdown message")),
+
+  // TICKETING SYSTEM
+  new SlashCommandBuilder()
+    .setName("setuptickets")
+    .setDescription("Send the Miami City RP ticket setup panel")
+    .setDefaultMemberPermissions(PermissionFlagsBits.Administrator),
+
+  new SlashCommandBuilder()
+    .setName("ticket")
+    .setDescription("Support ticket options")
+    .addSubcommand(sub =>
+      sub.setName("add").setDescription("Add a user to this ticket")
+        .addUserOption(opt => opt.setName("user").setDescription("User to add").setRequired(true)))
+    .addSubcommand(sub =>
+      sub.setName("remove").setDescription("Remove a user from this ticket")
+        .addUserOption(opt => opt.setName("user").setDescription("User to remove").setRequired(true)))
+    .addSubcommand(sub =>
+      sub.setName("rename").setDescription("Rename this ticket")
+        .addStringOption(opt => opt.setName("name").setDescription("New channel name").setRequired(true)))
+    .addSubcommand(sub => sub.setName("escalate").setDescription("Escalate this ticket to higher management"))
+    .addSubcommand(sub => sub.setName("close").setDescription("Close this ticket"))
+    .addSubcommand(sub => sub.setName("closerequest").setDescription("Send a close request to the ticket opener")),
+
+  // TRAINING OPERATIONS
+  new SlashCommandBuilder()
+    .setName("training")
+    .setDescription("Department training commands")
+    .addSubcommand(sub =>
+      sub.setName("host").setDescription("Host a department training session")
+        .addStringOption(opt => opt.setName("department").setDescription("MPD, MDSO, or MFR").setRequired(true)))
+    .addSubcommand(sub => sub.setName("request").setDescription("Request a training session"))
+    .addSubcommand(sub =>
+      sub.setName("log_phase1").setDescription("Log Phase 1 training results")
+        .addUserOption(opt => opt.setName("user").setDescription("Recruit").setRequired(true)))
+    .addSubcommand(sub =>
+      sub.setName("log_phase2").setDescription("Log Phase 2 training results")
+        .addUserOption(opt => opt.setName("user").setDescription("Recruit").setRequired(true))),
+
+  // UTILITIES & LOGS
+  new SlashCommandBuilder()
+    .setName("say")
+    .setDescription("Make the bot say a message")
+    .setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages)
+    .addStringOption(opt => opt.setName("message").setDescription("Message content").setRequired(true)),
+
+  new SlashCommandBuilder()
+    .setName("staff_feedback")
+    .setDescription("Leave feedback for a Miami City RP staff member")
+    .addUserOption(opt => opt.setName("staff").setDescription("Staff member").setRequired(true))
+    .addStringOption(opt => opt.setName("comments").setDescription("Your feedback").setRequired(true)),
+
+  new SlashCommandBuilder()
+    .setName("userlogs")
+    .setDescription("View moderation logs for a user")
+    .setDefaultMemberPermissions(PermissionFlagsBits.ModerateMembers)
+    .addUserOption(opt => opt.setName("user").setDescription("User to inspect").setRequired(true))
+];
+
+client.login(process.env.DISCORD_TOKEN);
